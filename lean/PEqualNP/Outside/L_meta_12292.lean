@@ -3395,6 +3395,236 @@ theorem size_from_fourBarrier
   · exact essential _ (List.mem_sublists.2 hsub) heq (required hr)
 
 
+def partU (m slack : Nat) (ws : List Nat) (f : Nat → List Nat → Bool) (a : Nat) : Bool :=
+    let ra := ws.erase a
+    (slack ≥ 1 && ([false,true].any fun neg =>
+      let w := if neg then a ^^^ m else a
+      f (tagU ws a neg false) (w :: ra) || (slack ≥ 2 && f (tagU ws a neg true) (w :: a :: ra))))
+def partB (_m slack : Nat) (ws : List Nat) (f : Nat → List Nat → Bool) (a b : Nat) : Bool :=
+    let ra := ws.erase a
+    a ≤ b && (let r := ra.erase b
+        [false,true].any fun conj =>
+          let w := if conj then a &&& b else a ||| b
+          f (tagB ws a b conj false false) (w :: r) || (slack ≥ 1 && (f (tagB ws a b conj true false) (w :: a :: r) || f (tagB ws a b conj false true) (w :: b :: r))) ||
+            (slack ≥ 2 && f (tagB ws a b conj true true) (w :: a :: b :: r)))
+def splitNext (m slack : Nat) (ws : List Nat) (f : Nat → List Nat → Bool) : Bool :=
+  ws.any fun a => partU m slack ws f a || (ws.erase a).any (partB m slack ws f a)
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem next_eq_split (m slack : Nat) (ws : List Nat) (f : Nat → List Nat → Bool) :
+  next m slack ws f = splitNext m slack ws f := rfl
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem splitNext_false (m slack : Nat) (ws : List Nat) (f : Nat → List Nat → Bool)
+    (hu : ∀ a ∈ ws, partU m slack ws f a = false)
+    (hb : ∀ a ∈ ws, ∀ b ∈ ws.erase a, partB m slack ws f a b = false) :
+    splitNext m slack ws f = false := by
+  apply List.any_eq_false.mpr
+  intro a ha
+  simp only [hu a ha, Bool.false_or]
+  have h : (ws.erase a).any (partB m slack ws f a) = false := by
+    apply List.any_eq_false.mpr
+    intro b hbm
+    rw [hb a ha b hbm]
+    decide
+  rw [h]
+  decide
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem barrier_false (k s : Nat) (ws : List Nat)
+    (h : next (mask k) (s+2-ws.length) ws (fun _ ys => barrierOK k s ys) = false) :
+    barrierOK k (s+1) ws = false := by
+  rw [barrierOK, h]
+  simp only [Bool.and_false]
+
+def ws2 : List Nat := [0x2add5bab756ead800000003ff800,0x336e6dcdb9b736800001ffc00000,0x3c778ef1de3bc7000ffe00000000,0x3f87f0fe1fc3f87ff00000000000]
+def f2 (_ : Nat) (ys : List Nat) := barrierOK 55 5 ys
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u2_0 : partU (mask 55) 3 ws2 f2 0x2add5bab756ead800000003ff800 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_0_1 : partB (mask 55) 3 ws2 f2 0x2add5bab756ead800000003ff800 0x336e6dcdb9b736800001ffc00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_0_2 : partB (mask 55) 3 ws2 f2 0x2add5bab756ead800000003ff800 0x3c778ef1de3bc7000ffe00000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_0_3 : partB (mask 55) 3 ws2 f2 0x2add5bab756ead800000003ff800 0x3f87f0fe1fc3f87ff00000000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u2_1 : partU (mask 55) 3 ws2 f2 0x336e6dcdb9b736800001ffc00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_1_0 : partB (mask 55) 3 ws2 f2 0x336e6dcdb9b736800001ffc00000 0x2add5bab756ead800000003ff800 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_1_2 : partB (mask 55) 3 ws2 f2 0x336e6dcdb9b736800001ffc00000 0x3c778ef1de3bc7000ffe00000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_1_3 : partB (mask 55) 3 ws2 f2 0x336e6dcdb9b736800001ffc00000 0x3f87f0fe1fc3f87ff00000000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u2_2 : partU (mask 55) 3 ws2 f2 0x3c778ef1de3bc7000ffe00000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_2_0 : partB (mask 55) 3 ws2 f2 0x3c778ef1de3bc7000ffe00000000 0x2add5bab756ead800000003ff800 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_2_1 : partB (mask 55) 3 ws2 f2 0x3c778ef1de3bc7000ffe00000000 0x336e6dcdb9b736800001ffc00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_2_3 : partB (mask 55) 3 ws2 f2 0x3c778ef1de3bc7000ffe00000000 0x3f87f0fe1fc3f87ff00000000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u2_3 : partU (mask 55) 3 ws2 f2 0x3f87f0fe1fc3f87ff00000000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_3_0 : partB (mask 55) 3 ws2 f2 0x3f87f0fe1fc3f87ff00000000000 0x2add5bab756ead800000003ff800 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_3_1 : partB (mask 55) 3 ws2 f2 0x3f87f0fe1fc3f87ff00000000000 0x336e6dcdb9b736800001ffc00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b2_3_2 : partB (mask 55) 3 ws2 f2 0x3f87f0fe1fc3f87ff00000000000 0x3c778ef1de3bc7000ffe00000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem cert2 : barrierOK 55 6 ws2 = false := by
+  apply barrier_false
+  rw [next_eq_split]
+  change splitNext (mask 55) 3 ws2 f2 = false
+  apply splitNext_false
+  · intro a ha
+    change a ∈ [0x2add5bab756ead800000003ff800,0x336e6dcdb9b736800001ffc00000,0x3c778ef1de3bc7000ffe00000000,0x3f87f0fe1fc3f87ff00000000000] at ha
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+    rcases ha with rfl | rfl | rfl | rfl
+    · exact u2_0
+    · exact u2_1
+    · exact u2_2
+    · exact u2_3
+  · intro a ha b hb
+    change a ∈ [0x2add5bab756ead800000003ff800,0x336e6dcdb9b736800001ffc00000,0x3c778ef1de3bc7000ffe00000000,0x3f87f0fe1fc3f87ff00000000000] at ha
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+    rcases ha with rfl | rfl | rfl | rfl
+    · change b ∈ [0x336e6dcdb9b736800001ffc00000,0x3c778ef1de3bc7000ffe00000000,0x3f87f0fe1fc3f87ff00000000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b2_0_1
+      · exact b2_0_2
+      · exact b2_0_3
+    · change b ∈ [0x2add5bab756ead800000003ff800,0x3c778ef1de3bc7000ffe00000000,0x3f87f0fe1fc3f87ff00000000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b2_1_0
+      · exact b2_1_2
+      · exact b2_1_3
+    · change b ∈ [0x2add5bab756ead800000003ff800,0x336e6dcdb9b736800001ffc00000,0x3f87f0fe1fc3f87ff00000000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b2_2_0
+      · exact b2_2_1
+      · exact b2_2_3
+    · change b ∈ [0x2add5bab756ead800000003ff800,0x336e6dcdb9b736800001ffc00000,0x3c778ef1de3bc7000ffe00000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b2_3_0
+      · exact b2_3_1
+      · exact b2_3_2
+
+def ws3 : List Nat := [0x2f7bdef7bdef7b801f003e0f83e0,0x37bdef7bdef7bd83e007c00ffc00,0x3bdef7bdef7bdefc0007fff00000,0x3def7bdef7bdef7ffff800000000]
+def f3 (_ : Nat) (ys : List Nat) := barrierOK 55 5 ys
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u3_0 : partU (mask 55) 3 ws3 f3 0x2f7bdef7bdef7b801f003e0f83e0 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_0_1 : partB (mask 55) 3 ws3 f3 0x2f7bdef7bdef7b801f003e0f83e0 0x37bdef7bdef7bd83e007c00ffc00 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_0_2 : partB (mask 55) 3 ws3 f3 0x2f7bdef7bdef7b801f003e0f83e0 0x3bdef7bdef7bdefc0007fff00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_0_3 : partB (mask 55) 3 ws3 f3 0x2f7bdef7bdef7b801f003e0f83e0 0x3def7bdef7bdef7ffff800000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u3_1 : partU (mask 55) 3 ws3 f3 0x37bdef7bdef7bd83e007c00ffc00 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_1_0 : partB (mask 55) 3 ws3 f3 0x37bdef7bdef7bd83e007c00ffc00 0x2f7bdef7bdef7b801f003e0f83e0 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_1_2 : partB (mask 55) 3 ws3 f3 0x37bdef7bdef7bd83e007c00ffc00 0x3bdef7bdef7bdefc0007fff00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_1_3 : partB (mask 55) 3 ws3 f3 0x37bdef7bdef7bd83e007c00ffc00 0x3def7bdef7bdef7ffff800000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u3_2 : partU (mask 55) 3 ws3 f3 0x3bdef7bdef7bdefc0007fff00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_2_0 : partB (mask 55) 3 ws3 f3 0x3bdef7bdef7bdefc0007fff00000 0x2f7bdef7bdef7b801f003e0f83e0 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_2_1 : partB (mask 55) 3 ws3 f3 0x3bdef7bdef7bdefc0007fff00000 0x37bdef7bdef7bd83e007c00ffc00 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_2_3 : partB (mask 55) 3 ws3 f3 0x3bdef7bdef7bdefc0007fff00000 0x3def7bdef7bdef7ffff800000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem u3_3 : partU (mask 55) 3 ws3 f3 0x3def7bdef7bdef7ffff800000000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_3_0 : partB (mask 55) 3 ws3 f3 0x3def7bdef7bdef7ffff800000000 0x2f7bdef7bdef7b801f003e0f83e0 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_3_1 : partB (mask 55) 3 ws3 f3 0x3def7bdef7bdef7ffff800000000 0x37bdef7bdef7bd83e007c00ffc00 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem b3_3_2 : partB (mask 55) 3 ws3 f3 0x3def7bdef7bdef7ffff800000000 0x3bdef7bdef7bdefc0007fff00000 = false := by decide +kernel
+set_option maxRecDepth 4096 in
+set_option maxHeartbeats 2400000 in
+theorem cert3 : barrierOK 55 6 ws3 = false := by
+  apply barrier_false
+  rw [next_eq_split]
+  change splitNext (mask 55) 3 ws3 f3 = false
+  apply splitNext_false
+  · intro a ha
+    change a ∈ [0x2f7bdef7bdef7b801f003e0f83e0,0x37bdef7bdef7bd83e007c00ffc00,0x3bdef7bdef7bdefc0007fff00000,0x3def7bdef7bdef7ffff800000000] at ha
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+    rcases ha with rfl | rfl | rfl | rfl
+    · exact u3_0
+    · exact u3_1
+    · exact u3_2
+    · exact u3_3
+  · intro a ha b hb
+    change a ∈ [0x2f7bdef7bdef7b801f003e0f83e0,0x37bdef7bdef7bd83e007c00ffc00,0x3bdef7bdef7bdefc0007fff00000,0x3def7bdef7bdef7ffff800000000] at ha
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at ha
+    rcases ha with rfl | rfl | rfl | rfl
+    · change b ∈ [0x37bdef7bdef7bd83e007c00ffc00,0x3bdef7bdef7bdefc0007fff00000,0x3def7bdef7bdef7ffff800000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b3_0_1
+      · exact b3_0_2
+      · exact b3_0_3
+    · change b ∈ [0x2f7bdef7bdef7b801f003e0f83e0,0x3bdef7bdef7bdefc0007fff00000,0x3def7bdef7bdef7ffff800000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b3_1_0
+      · exact b3_1_2
+      · exact b3_1_3
+    · change b ∈ [0x2f7bdef7bdef7b801f003e0f83e0,0x37bdef7bdef7bd83e007c00ffc00,0x3def7bdef7bdef7ffff800000000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b3_2_0
+      · exact b3_2_1
+      · exact b3_2_3
+    · change b ∈ [0x2f7bdef7bdef7b801f003e0f83e0,0x37bdef7bdef7bd83e007c00ffc00,0x3bdef7bdef7bdefc0007fff00000] at hb
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hb
+      rcases hb with rfl | rfl | rfl
+      · exact b3_3_0
+      · exact b3_3_1
+      · exact b3_3_2
+
 def fourRows2 : List Nat := [0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x1,0x1,0x1,0x1,0x1,0x1,0x1,0x1,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x4,0x4,0x4,0x4,0x4,0x4,0x4,0x4,0x4,0x4,0x4,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x8,0x3,0x5,0x6,0x7,0x9,0xa,0xb,0xc,0xd,0xe,0xf,0x3,0x5,0x6,0x7,0x9,0xa,0xb,0xc,0xd,0xe,0xf,0x3,0x5,0x6,0x7,0x9,0xa,0xb,0xc,0xd,0xe,0xf,0x3,0x5,0x6,0x7,0x9,0xa,0xb,0xc,0xd,0xe,0xf,0x3,0x5,0x6,0x7,0x9,0xa,0xb,0xc,0xd,0xe,0xf]
 set_option maxRecDepth 4096 in
 set_option maxHeartbeats 2400000 in
@@ -3402,7 +3632,7 @@ theorem fourLower2 (s : Nat) (h : HasCircuitSize 4 (targetFour 0xfee8) s) : 6 < 
   apply size_from_fourBarrier 0xfee8 55 6 fourRows2 0x2add5bab756ead800000003ff800 [0x336e6dcdb9b736800001ffc00000,0x3c778ef1de3bc7000ffe00000000,0x3f87f0fe1fc3f87ff00000000000] (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) _ h
   apply none_from_barrier
-  decide +kernel
+  exact cert2
 
 def fourRows3 : List Nat := [0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x1,0x1,0x2,0x2,0x2,0x2,0x2,0x3,0x3,0x3,0x3,0x3,0x4,0x4,0x4,0x4,0x4,0x5,0x5,0x5,0x5,0x5,0x6,0x6,0x6,0x6,0x6,0x8,0x8,0x8,0x8,0x8,0x9,0x9,0x9,0x9,0x9,0xa,0xa,0xa,0xa,0xa,0xc,0xc,0xc,0xc,0xc,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf,0x7,0xb,0xd,0xe,0xf]
 set_option maxRecDepth 4096 in
@@ -3411,7 +3641,7 @@ theorem fourLower3 (s : Nat) (h : HasCircuitSize 4 (targetFour 0xe880) s) : 6 < 
   apply size_from_fourBarrier 0xe880 55 6 fourRows3 0x2f7bdef7bdef7b801f003e0f83e0 [0x37bdef7bdef7bd83e007c00ffc00,0x3bdef7bdef7bdefc0007fff00000,0x3def7bdef7bdef7ffff800000000] (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) _ h
   apply none_from_barrier
-  decide +kernel
+  exact cert3
 end PEqualNP.Outside.L_meta_12292.Five.M1433.Live
 
 namespace PEqualNP.Outside.L_meta_12292.Five.M1433.Live
